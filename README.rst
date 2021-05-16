@@ -30,7 +30,7 @@ Usage
 
 Results will look like:
 
-.. image:: https://i.imgur.com/WC8epOg.jpg
+.. image:: https://i.imgur.com/fS6vPNm.jpg
 
 
 Installation
