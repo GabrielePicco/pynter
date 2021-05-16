@@ -20,6 +20,7 @@ Usage
 
 3. Provide a caption and Generate the image::
 
+    from pynter import generate_captioned
     font_path = './Roboto/Roboto-Regular.ttf'
     image_path = './image.jpg'
     im = generate_captioned('China lands rover on Mars'.upper(), image_path=image_path, size=(1080, 1350),
