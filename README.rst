@@ -12,7 +12,7 @@ Usage
 
 1. Download an image
 
-    curl https://ichef.bbci.co.uk/news/1024/branded_news/46C9/production/_118512181_zhurong-china-mars-lander.jpg -o ./image.jpg
+    curl https://i.imgur.com/XQCKcC9.jpg -o ./image.jpg
 
 2. Download a font
 
