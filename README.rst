@@ -35,7 +35,7 @@ Results will look like:
 
 
 Image Generation
------
+----------------
 
 
 generate_captioned(    text: str,
