@@ -107,7 +107,7 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
     post_im = post_im.resize((post_img_w, post_img_h), Image.ANTIALIAS)
     if text_background_mode != TextBackgroundMode.ATTACH_TO_BOTTOM \
             and text_background_mode != TextBackgroundMode.ATTACH_TO_TOP\
-            and image_mode.NOT_OVERLAY:
+            and image_mode == ImageMode.NOT_OVERLAY:
         raise ValueError("NOT_OVERLAY option only supported with ATTACH_TO_TOP ot ATTACH_TO_BOTTOM")
     offset_x = round((W - post_img_w) / 2)
     if text_background_mode == TextBackgroundMode.ATTACH_TO_TOP and image_mode == ImageMode.NOT_OVERLAY:
