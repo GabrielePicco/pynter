@@ -1,9 +1,15 @@
 import math
 from enum import Enum
-from typing import Callable, Optional, Tuple
+from pathlib import Path
+from typing import Callable, Optional, Tuple, Union
 
 from PIL import Image, ImageDraw, ImageFont
+from PIL.Image import Image as ImageType
 from PIL.ImageFilter import BuiltinFilter
+
+#                          color        text background color
+BLACK_WHITE_PALETTE = (((0, 0, 0, 255), (245, 245, 245, 255)),
+                       ((255, 255, 255, 255), (0, 0, 0, 255)))
 
 
 class TextBackgroundMode(str, Enum):
@@ -46,13 +52,14 @@ def split_text_on_width_size(text: str, max_width: float, fn_text_to_width: Call
     return "\n".join(text_pieces)
 
 
-def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = None, image_mode=ImageMode.OVERLAY,
-                       font_path: str = None,
+def generate_captioned(text: str, image_path: Union[str, Path], size: Optional[Tuple[int, int]] = None,
+                       image_mode=ImageMode.OVERLAY,
+                       font_path: Union[str, Path] = None,
                        text_align: TextAlign = TextAlign.LEFT,
                        text_min_height: Optional[float] = None,
                        bottom_margin: Optional[float] = 0.07, top_margin: Optional[float] = None,
                        left_margin: float = 0.2, right_margin: float = 0.2,
-                       character_ratio: float = 0.07,
+                       character_ratio: Optional[float] = None,
                        filter_color: Tuple[int, int, int, int] = (0, 0, 0, 0),
                        text_background_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
                        text_background_padding: float = 0.2,
@@ -72,7 +79,8 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
     :param top_margin: text top margin percentage
     :param left_margin: text left margin percentage
     :param right_margin: text right margin percentage
-    :param character_ratio: character ratio of the ImageWidth
+    :param character_ratio: character ratio related to the ImageWidth, if missing it's estimated
+    using the following liner function depending on the text length: -0.0005*len(text) + 0.116
     :param filter_color: color of the filter applied on the image
     :param text_background_color: color of the textual background
     :param text_background_padding: background padding
@@ -81,6 +89,8 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
     :param color: text color
     :return: the generated image
     """
+    if not character_ratio:
+        character_ratio = -0.0005 * len(text) + 0.116
     # Adapt and paste provided image
     post_im = Image.open(image_path).convert('RGBA')
     W, H = size if size else post_im.size
@@ -91,8 +101,8 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
     text = split_text_on_width_size(text, W - left_margin * W - right_margin * W,
                                     lambda x: draw.multiline_textsize(x, font=font)[0])
     w, h = draw.multiline_textsize(text, font=font)
-    if text_min_height and h < text_min_height*H:
-        h = text_min_height*H
+    if text_min_height and h < text_min_height * H:
+        h = text_min_height * H
     # Calculate text background dimension
     text_background_width = W
     if text_background_mode in (TextBackgroundMode.ATTACH_TO_BOTTOM, TextBackgroundMode.ATTACH_TO_TOP):
@@ -111,9 +121,9 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
         raise ValueError("NOT_OVERLAY option only supported with ATTACH_TO_TOP ot ATTACH_TO_BOTTOM")
     offset_x = round((W - post_img_w) / 2)
     if text_background_mode == TextBackgroundMode.ATTACH_TO_TOP and image_mode == ImageMode.NOT_OVERLAY:
-        offset_y = round((H - post_img_h) / 2 + text_background_height/2)
+        offset_y = round((H - post_img_h) / 2 + text_background_height / 2)
     elif text_background_mode == TextBackgroundMode.ATTACH_TO_BOTTOM and image_mode == ImageMode.NOT_OVERLAY:
-        offset_y = round((H - post_img_h) / 2 - text_background_height/2)
+        offset_y = round((H - post_img_h) / 2 - text_background_height / 2)
     else:
         offset_y = round((H - post_img_h) / 2)
     im.paste(post_im, (offset_x, offset_y))
@@ -137,6 +147,28 @@ def generate_captioned(text: str, image_path, size: Optional[Tuple[int, int]] = 
                                        size=(math.ceil(text_background_width), math.ceil(text_background_height)),
                                        color=text_background_color)
         im.paste(text_background_im, (0, 0 if text_background_mode == TextBackgroundMode.ATTACH_TO_TOP else
-                                      round(text_h_anchor - h * text_background_padding / 2)), text_background_im)
+        round(text_h_anchor - h * text_background_padding / 2)), text_background_im)
     draw.multiline_text((text_w_anchor, text_h_anchor), text, color, font, align=text_align)
     return im
+
+
+def estimate_color_palette(image: Union[str, Path, ImageType],
+                           color_palette: Tuple[Tuple[Tuple[int, int, int, int],
+                                                      Tuple[int, int, int, int]]] = BLACK_WHITE_PALETTE) \
+        -> Tuple[Tuple[int, int, int, int], Tuple[int, int, int, int]]:
+    """
+
+    :param image: Pillow image or path to an image
+    :param color_palette: Set of color palette. A color palette consist in the font and background color
+    :return: divide 255 in len(color_palette) ranges. Return the color palette for which the average color
+    of the image fall under.
+    """
+    pixel_average = lambda p: sum([p[0], p[1], p[2]]) / 3
+    if not isinstance(image, ImageType):
+        image = Image.open(image)
+    image = image.convert('RGBA')
+    pxl_estimate = image.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
+    avg_color = pixel_average(pxl_estimate)
+    color_palette = sorted(color_palette, key=lambda c: pixel_average(c[1]), reverse=True)
+    palette_idx = int(avg_color // (255 / len(color_palette)))
+    return color_palette[palette_idx]
