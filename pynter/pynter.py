@@ -170,5 +170,5 @@ def estimate_color_palette(image: Union[str, Path, ImageType],
     pxl_estimate = image.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
     avg_color = pixel_average(pxl_estimate)
     color_palette = sorted(color_palette, key=lambda c: pixel_average(c[1]), reverse=True)
-    palette_idx = int(avg_color // (255 / len(color_palette)))
+    palette_idx = int(avg_color // (255 / len(color_palette))) % len(color_palette)
     return color_palette[palette_idx]

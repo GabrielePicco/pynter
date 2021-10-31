@@ -15,7 +15,7 @@ def read(filename):
 
 setup(
     name="pynter",
-    version="0.1.5",
+    version="0.1.6",
     url="https://github.com/GabrielePicco/pynter",
     license='MIT',
 
